@@ -11,23 +11,13 @@ RailBall::RailBall()
 {
     mLifeMsec = 0;
     mWaveMsec = 0;
-    mCellX = 0;
-    mCellY = 0;
+    mCellX = -1;
+    mCellY = -1;
 }
 
 RailBall::~RailBall()
 {
-    // 소속셀에서 제외
-    auto& CurCell = gBallLand(String::Format("%d/%d", mCellX, mCellY));
-    for(sint32 i = 0, iend = CurCell.Count(); i < iend; ++i)
-    {
-        auto CurBall = CurCell.At(i);
-        if(this == CurBall)
-        {
-            CurCell.SubtractionSection(i);
-            break;
-        }
-    }
+    BindCell(-1, -1);
 }
 
 uint32 gRailCode = 1;
@@ -67,15 +57,36 @@ void RailBall::Init(double x, double y)
 
     mLifeMsec = Platform::Utility::CurrentTimeMsec();
     mWaveMsec = 0;
-    mCellX = ((sint32) x) / mWaveR;
-    mCellY = ((sint32) y) / mWaveR;
+
+    BindCell(((sint32) x) / mWaveR, ((sint32) y) / mWaveR);
+    gRailOrder += 1;
+}
+
+void RailBall::BindCell(sint32 x, sint32 y)
+{
+    // 소속셀에서 제외
+    if(mCellX != -1 && mCellY != -1)
+    {
+        auto& CurCell = gBallLand(String::Format("%d/%d", mCellX, mCellY));
+        for(sint32 i = 0, iend = CurCell.Count(); i < iend; ++i)
+        {
+            auto CurBall = CurCell.At(i);
+            if(this == CurBall)
+            {
+                CurCell.SubtractionSection(i);
+                break;
+            }
+        }
+    }
 
     // 소속셀에 등록
-    auto& CurCell = gBallLand(String::Format("%d/%d", mCellX, mCellY));
-    CurCell.AtAdding() = this;
-
-    // 다음 포커스
-    gRailOrder += 1;
+    if(x != -1 && y != -1)
+    {
+        mCellX = x;
+        mCellY = y;
+        auto& CurCell = gBallLand(String::Format("%d/%d", mCellX, mCellY));
+        CurCell.AtAdding() = this;
+    }
 }
 
 void RailBall::RenderBall(ZayPanel& panel)
@@ -122,6 +133,7 @@ void RailBall::RenderInfo(ZayPanel& panel)
             {
                 mStatus.mPosX += x - OldPos.x;
                 mStatus.mPosY += y - OldPos.y;
+                BindCell(((sint32) mStatus.mPosX) / mWaveR, ((sint32) mStatus.mPosY) / mWaveR);
                 OldPos = Point(x, y);
             }
         })

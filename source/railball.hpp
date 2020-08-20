@@ -42,6 +42,9 @@ public:
 
 public:
     void Init(double x, double y);
+    void BindCell(sint32 x, sint32 y);
+
+public:
     void RenderBall(ZayPanel& panel);
     void RenderInfo(ZayPanel& panel);
     void RenderWave(ZayPanel& panel);
