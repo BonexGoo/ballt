@@ -20,15 +20,22 @@ public:
 class BallEvent
 {
 public:
-    uint64 mWaveMsec {0};
+    uint64 mWrittenMsec {0};
     BallStatus mStatus;
 
 public:
     BallEvent& operator=(const BallEvent& rhs)
     {
-        mWaveMsec = rhs.mWaveMsec;
+        mWrittenMsec = rhs.mWrittenMsec;
         mStatus = rhs.mStatus;
         return *this;
+    }
+
+public:
+    float DistanceTo(const BallEvent& other)
+    {
+        return Math::Distance(mStatus.mPosX, mStatus.mPosY,
+            other.mStatus.mPosX, other.mStatus.mPosY);
     }
 };
 
@@ -53,6 +60,7 @@ public:
     void RenderBall(ZayPanel& panel);
     void RenderInfo(ZayPanel& panel);
     void RenderWave(ZayPanel& panel);
+    void RenderWaveBG(ZayPanel& panel);
     void Tick(uint64 msec);
 
 private:
@@ -60,9 +68,10 @@ private:
     void WaveFlush(const BallEvents& events, float waveR);
 
 private: // 상수
-    static const sint32 mWaveR {50}; // 전파영향권 반지름(5M)
-    static const sint32 mRelayDist {1000}; // 릴레이 한계거리(100M)
-    static const uint64 mSlowVideo {100}; // 슬로우비디오계수(100배)
+    static const sint32 mBallR {2}; // 전파영향권 반지름(20cm)
+    static const sint32 mWaveR {50}; // 전파영향권 반지름(5m)
+    static const sint32 mRelayDist {1000}; // 릴레이 한계거리(100m)
+    static const uint64 mSlowVideo {100}; // 슬로우비디오계수(100x)
 
 private: // 수집이벤트
     Map<BallEvent> mTotalEvents;
@@ -70,6 +79,12 @@ private: // 수집이벤트
 private: // 이벤트 처리과정
     BallEvents mNextEvents;
     BallEvents mLiveEvents;
+    uint64 mWaveMsec;
     sint32 mCellX;
     sint32 mCellY;
+
+private: // 랜더링 요소
+    String mUIName;
+    float mBallAni;
+    float mBallSizeR;
 };

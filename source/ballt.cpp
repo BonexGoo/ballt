@@ -38,13 +38,36 @@ ZAY_VIEW_API OnRender(ZayPanel& panel)
     // 배경색
     ZAY_RGB(panel, 64, 64, 64)
         panel.fill();
+    // 전파배경
+    ZAY_RGB(panel, 60, 60, 60)
+        m->mBalls.AccessByCallback(
+            [](const MapPath* path, RailBall* ball, payload data)->void
+            {
+                ball->RenderWaveBG(*((ZayPanel*) data));
+            }, &panel);
 
-    // 버전정보
-    ZAY_XYWH(panel, panel.w() - 10 - 200, 10, 200, 25)
+    // 정보
     ZAY_RGBA(panel, 255, 255, 255, 64)
     {
-        panel.rect(2);
-        panel.text(String::Format("Build: %s %s", __DATE__, __TIME__));
+        // 버전
+        ZAY_XYWH(panel, panel.w() - 10 - 200, 10, 200, 25)
+        {
+            panel.rect(2);
+            panel.text(String::Format("Build: %s %s", __DATE__, __TIME__));
+        }
+        // 축적
+        ZAY_XYWH(panel, panel.w() - 10 - 20, 45, 20, 20)
+        {
+            ZAY_XYWH(panel, -2, 0, 2, 10)
+                panel.fill();
+            ZAY_XYWH(panel, panel.w(), 0, 2, 10)
+                panel.fill();
+            ZAY_XYWH(panel, 0, 4, panel.w(), 2)
+                panel.fill();
+            ZAY_XYWH(panel, 0, 10, panel.w(), 10)
+            ZAY_FONT(panel, 0.8)
+                panel.text("2m");
+        }
     }
 
     // 전파그리기

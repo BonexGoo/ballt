@@ -9,8 +9,12 @@ BallLand gBallLand;
 
 RailBall::RailBall()
 {
+    mWaveMsec = 0;
     mCellX = -1;
     mCellY = -1;
+
+    mBallAni = 0;
+    mBallSizeR = 0;
 }
 
 RailBall::~RailBall()
@@ -48,15 +52,21 @@ void RailBall::RenderRailCode(ZayPanel& panel)
 
 void RailBall::Init(double x, double y)
 {
-    mWaveMsec = Platform::Utility::CurrentTimeMsec();
+    mWrittenMsec = Platform::Utility::CurrentTimeMsec();
     mStatus.mRailCode = gRailCode;
     mStatus.mRailOrder = gRailOrder;
     mStatus.mPosX = x;
     mStatus.mPosY = y;
     gRailOrder += 1;
 
-    mLiveEvents.AtAdding() = *this;
+    mLiveEvents.AtAdding() = *((BallEvent*) this);
+    mWaveMsec = Platform::Utility::CurrentTimeMsec();
     MoveToCell(((sint32) x) / mWaveR, ((sint32) y) / mWaveR);
+
+    mUIName = String::Format("%u-%u",
+        mStatus.mRailCode, (uint32) mStatus.mRailOrder);
+    mBallAni = 0;
+    mBallSizeR = 0;
 }
 
 void RailBall::MoveToCell(sint32 x, sint32 y)
@@ -87,40 +97,18 @@ void RailBall::MoveToCell(sint32 x, sint32 y)
 
 void RailBall::RenderBall(ZayPanel& panel)
 {
-    float AniValue = 0;
+    // 랜더링 요소 재계산
+    mBallAni = 0;
     const uint64 WaveMsec = Platform::Utility::CurrentTimeMsec() - mWaveMsec;
-    if(WaveMsec < 2 * mSlowVideo)
-        AniValue = 1 - WaveMsec / (2.0 * mSlowVideo);
-    const float SizeR = 5 + 5 * AniValue;
+    if(WaveMsec < 2 * mSlowVideo) // 0.2초
+        mBallAni = 1 - WaveMsec / (2.0 * mSlowVideo);
+
+    const sint32 UIGap = 4;
+    mBallSizeR = mBallR
+        + UIGap * ((panel.state(mUIName) & (PS_Focused | PS_Dragging))? 1.0 : mBallAni);
 
     // 볼
-    ZAY_XYRR(panel, mStatus.mPosX, mStatus.mPosY, SizeR, SizeR)
-    {
-        // 외형
-        ZAY_INNER(panel, -1)
-        ZAY_RGB(panel, 255, 255, 255)
-            panel.circle();
-        ZAY_RGB(panel, 0, 0, 0)
-            panel.circle();
-
-        // 불빛
-        ZAY_RGBA(panel, 0, 255, 0, 255 * AniValue)
-            panel.circle();
-    }
-}
-
-void RailBall::RenderInfo(ZayPanel& panel)
-{
-    float AniValue = 0;
-    const uint64 WaveMsec = Platform::Utility::CurrentTimeMsec() - mWaveMsec;
-    if(WaveMsec < 2 * mSlowVideo)
-        AniValue = 1 - WaveMsec / (2.0 * mSlowVideo);
-    const float SizeR = 5 + 5 * AniValue;
-
-    // 정보
-    const String UIName = String::Format("%u-%u",
-        mStatus.mRailCode, (uint32) mStatus.mRailOrder);
-    ZAY_XYRR_UI(panel, mStatus.mPosX, mStatus.mPosY, SizeR, SizeR, UIName,
+    ZAY_XYRR_UI(panel, mStatus.mPosX, mStatus.mPosY, mBallR + UIGap, mBallR + UIGap, mUIName,
         ZAY_GESTURE_TXY(t, x, y, this)
         {
             static Point OldPos;
@@ -134,43 +122,64 @@ void RailBall::RenderInfo(ZayPanel& panel)
                 MoveToCell(((sint32) mStatus.mPosX) / mWaveR, ((sint32) mStatus.mPosY) / mWaveR);
             }
         })
+    ZAY_XYRR(panel, panel.w() / 2, panel.h() / 2, mBallSizeR, mBallSizeR)
     {
-        if(0 < AniValue || (panel.state(UIName) & PS_Focused))
+        // 외형
+        ZAY_INNER(panel, -1)
+        ZAY_RGBA(panel, 255, 255, 255, 128)
+            panel.circle();
+        ZAY_RGB(panel, 0, 0, 0)
+            panel.circle();
+
+        // 불빛
+        ZAY_RGBA(panel, 0, 255, 0, 255 * mBallAni)
+            panel.circle();
+    }
+}
+
+void RailBall::RenderInfo(ZayPanel& panel)
+{
+    // 정보
+    ZAY_XYRR(panel, mStatus.mPosX, mStatus.mPosY, mBallSizeR, mBallSizeR)
+    {
+        // 이름
+        if(0 < mBallAni || (panel.state(mUIName) & PS_Focused))
         {
-            // 이름
-            ZAY_RGB(panel, 255, 0, 0)
+            ZAY_RGB(panel, 255, 255, 255)
             ZAY_FONT(panel, 0.9)
-                panel.text(panel.w() / 2, 0, UIName, UIFA_CenterBottom);
-            // 전파중인 이벤트량
-            const String LiveEvent = String::Format("%d", mLiveEvents.Count());
-            ZAY_RGB(panel, 0, 0, 0)
-            ZAY_FONT(panel, 0.7)
-                panel.text(panel.w() / 2, panel.h() / 2, LiveEvent);
+                panel.text(panel.w() / 2, 0, mUIName, UIFA_CenterBottom);
         }
 
         // 적재된 이벤트량
         if(0 < mNextEvents.Count())
         {
             const String NextEvent = String::Format("%d", mNextEvents.Count());
-            ZAY_RGB(panel, 0, 0, 255)
-            ZAY_FONT(panel, 0.7)
-                panel.text(panel.w() / 2, panel.h() + 2, NextEvent, UIFA_CenterTop);
+            ZAY_RGB(panel, 255, 0, 255)
+            ZAY_FONT(panel, 0.9)
+                panel.text(panel.w() / 2, panel.h(), NextEvent, UIFA_CenterTop);
         }
     }
 }
 
 void RailBall::RenderWave(ZayPanel& panel)
 {
-    float AniValue = 0;
+    float WaveAni = 0;
     const uint64 WaveMsec = Platform::Utility::CurrentTimeMsec() - mWaveMsec;
-    if(WaveMsec < 5 * mSlowVideo)
-        AniValue = WaveMsec / (5.0 * mSlowVideo);
+    if(WaveMsec < 5 * mSlowVideo) // 0.5초
+        WaveAni = WaveMsec / (5.0 * mSlowVideo);
 
     // 전파빛
-    if(0 < AniValue)
-    ZAY_XYRR(panel, mStatus.mPosX, mStatus.mPosY, 5, 5)
-    ZAY_INNER(panel, 5 - mWaveR * AniValue)
-    ZAY_RGBA(panel, 255, 255, 0, 64 * (1 - AniValue))
+    if(0 < WaveAni)
+    ZAY_XYRR(panel, mStatus.mPosX, mStatus.mPosY, 0, 0)
+    ZAY_INNER(panel, mWaveR * WaveAni)
+    ZAY_RGBA(panel, 255, 255, 0, 64 * (1 - WaveAni))
+        panel.circle();
+}
+
+void RailBall::RenderWaveBG(ZayPanel& panel)
+{
+    ZAY_XYRR(panel, mStatus.mPosX, mStatus.mPosY, 0, 0)
+    ZAY_INNER(panel, mWaveR)
         panel.circle();
 }
 
@@ -198,17 +207,20 @@ void RailBall::Tick(uint64 msec)
         }
     }
     // 예약된 신호를 전파시작
-    else if(10 * mSlowVideo < WaveMsec && 0 < mNextEvents.Count())
+    else if(0 < mNextEvents.Count())
     {
-        mWaveMsec = msec;
         mLiveEvents = ToReference(mNextEvents);
+        mWaveMsec = msec;
     }
 }
 
 void RailBall::RememberMe()
 {
     if(mNextEvents.Count() == 0)
-        mNextEvents.AtAdding() = *this;
+    {
+        mWrittenMsec = Platform::Utility::CurrentTimeMsec();
+        mNextEvents.AtAdding() = *((BallEvent*) this);
+    }
 }
 
 void RailBall::WaveFlush(const BallEvents& events, float waveR)
@@ -224,16 +236,14 @@ void RailBall::WaveFlush(const BallEvents& events, float waveR)
         return;
 
     // 전파영향권에 닿지 않으면 실패
-    const float WaveDist = Math::Distance(mStatus.mPosX, mStatus.mPosY,
-        Sender.mStatus.mPosX, Sender.mStatus.mPosY);
-    if(waveR < WaveDist)
+    if(waveR < DistanceTo(Sender))
         return;
 
     // 동일한 전파자의 같거나 오래된 전파는 실패
     const String SenderName = String::Format("%u-%f",
         Sender.mStatus.mRailCode, Sender.mStatus.mRailOrder);
     if(auto SavedEvent = mTotalEvents.Access(SenderName))
-    if(Sender.mWaveMsec <= SavedEvent->mWaveMsec)
+    if(Sender.mWrittenMsec <= SavedEvent->mWrittenMsec)
         return;
 
     // 전파내용 체크
@@ -242,16 +252,14 @@ void RailBall::WaveFlush(const BallEvents& events, float waveR)
         auto& CurEvent = events[i];
 
         // 릴레이 한계거리보다 멀면 스킵
-        const float CurDist = Math::Distance(mStatus.mPosX, mStatus.mPosY,
-            CurEvent.mStatus.mPosX, CurEvent.mStatus.mPosY);
-        if(mRelayDist < CurDist)
+        if(mRelayDist < DistanceTo(CurEvent))
             continue;
 
         // 기존에 수집된 이벤트라면 스킵
         const String CurName = String::Format("%u-%f",
             CurEvent.mStatus.mRailCode, CurEvent.mStatus.mRailOrder);
         if(auto SavedEvent = mTotalEvents.Access(CurName))
-        if(CurEvent.mWaveMsec <= SavedEvent->mWaveMsec)
+        if(CurEvent.mWrittenMsec <= SavedEvent->mWrittenMsec)
             continue;
         mTotalEvents(CurName) = CurEvent;
 
