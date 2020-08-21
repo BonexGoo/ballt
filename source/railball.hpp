@@ -20,16 +20,21 @@ public:
 class BallEvent
 {
 public:
+    uint64 mWaveMsec {0};
     BallStatus mStatus;
 
 public:
     BallEvent& operator=(const BallEvent& rhs)
-    {mStatus = rhs.mStatus; return *this;}
+    {
+        mWaveMsec = rhs.mWaveMsec;
+        mStatus = rhs.mStatus;
+        return *this;
+    }
 };
 
 typedef Array<BallEvent> BallEvents;
 
-class RailBall
+class RailBall : public BallEvent
 {
     BOSS_DECLARE_NONCOPYABLE_CLASS(RailBall)
 
@@ -42,7 +47,7 @@ public:
 
 public:
     void Init(double x, double y);
-    void BindCell(sint32 x, sint32 y);
+    void MoveToCell(sint32 x, sint32 y);
 
 public:
     void RenderBall(ZayPanel& panel);
@@ -51,20 +56,20 @@ public:
     void Tick(uint64 msec);
 
 private:
-    void SendMe();
-    void WaveTest(const RailBall& sender, float waveR);
+    void RememberMe();
+    void WaveFlush(const BallEvents& events, float waveR);
 
-private: // 자기데이터
-    static const sint32 mWaveR {50}; // 전파영향권 반지름
-    static const sint32 mRelayDist {1000}; // 릴레이 한계거리
-    BallStatus mStatus;
+private: // 상수
+    static const sint32 mWaveR {50}; // 전파영향권 반지름(5M)
+    static const sint32 mRelayDist {1000}; // 릴레이 한계거리(100M)
+    static const uint64 mSlowVideo {100}; // 슬로우비디오계수(100배)
 
-private: // 운영데이터
+private: // 수집이벤트
+    Map<BallEvent> mTotalEvents;
+
+private: // 이벤트 처리과정
     BallEvents mNextEvents;
     BallEvents mLiveEvents;
-    uint64 mLifeMsec;
-    uint64 mWaveMsec;
-    Map<uint64> mTestedWaveMsec;
     sint32 mCellX;
     sint32 mCellY;
 };
