@@ -5,7 +5,7 @@
 
 typedef Array<RailBall*> BallCell;
 typedef Map<BallCell> BallLand;
-BallLand gBallLand;
+static BallLand gBallLand;
 
 RailBall::RailBall()
 {
@@ -22,8 +22,8 @@ RailBall::~RailBall()
     MoveToCell(-1, -1);
 }
 
-uint32 gRailCode = 1;
-float gRailOrder = 1;
+static uint32 gRailCode = 1;
+static float gRailOrder = 1;
 void RailBall::RenderRailCode(ZayPanel& panel)
 {
     ZAY_INNER_UI(panel, 0, "next",
@@ -170,16 +170,14 @@ void RailBall::RenderWave(ZayPanel& panel)
 
     // 전파빛
     if(0 < WaveAni)
-    ZAY_XYRR(panel, mStatus.mPosX, mStatus.mPosY, 0, 0)
-    ZAY_INNER(panel, mWaveR * WaveAni)
+    ZAY_XYRR(panel, mStatus.mPosX, mStatus.mPosY, mWaveR * WaveAni, mWaveR * WaveAni)
     ZAY_RGBA(panel, 255, 255, 0, 64 * (1 - WaveAni))
         panel.circle();
 }
 
 void RailBall::RenderWaveBG(ZayPanel& panel)
 {
-    ZAY_XYRR(panel, mStatus.mPosX, mStatus.mPosY, 0, 0)
-    ZAY_INNER(panel, mWaveR)
+    ZAY_XYRR(panel, mStatus.mPosX, mStatus.mPosY, mWaveR, mWaveR)
         panel.circle();
 }
 

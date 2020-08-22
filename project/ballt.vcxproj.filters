@@ -36,6 +36,9 @@
     <ClInclude Include="..\source\railball.hpp">
       <Filter>source</Filter>
     </ClInclude>
+    <ClInclude Include="..\source\car.hpp">
+      <Filter>source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\source\ballt.cpp">
@@ -48,6 +51,9 @@
       <Filter>source</Filter>
     </ClCompile>
     <ClCompile Include="..\source\railball.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\car.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
