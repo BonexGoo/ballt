@@ -3,23 +3,15 @@
 
 #include <resource.hpp>
 
-typedef Array<RailBall*> BallCell;
-typedef Map<BallCell> BallLand;
-static BallLand gBallLand;
-
 RailBall::RailBall()
 {
     mWaveMsec = 0;
-    mCellX = -1;
-    mCellY = -1;
-
     mBallAni = 0;
     mBallSizeR = 0;
 }
 
 RailBall::~RailBall()
 {
-    MoveToCell(-1, -1);
 }
 
 static uint32 gRailCode = 1;
@@ -52,47 +44,22 @@ void RailBall::RenderRailCode(ZayPanel& panel)
 
 void RailBall::Init(double x, double y)
 {
-    mWrittenMsec = Platform::Utility::CurrentTimeMsec();
     mStatus.mRailCode = gRailCode;
     mStatus.mRailOrder = gRailOrder;
     mStatus.mPosX = x;
     mStatus.mPosY = y;
+    MoveToCell(((sint32) x) / mWaveR, ((sint32) y) / mWaveR);
     gRailOrder += 1;
 
-    mLiveEvents.AtAdding() = *((BallEvent*) this);
+    auto& NewEvent = mLiveEvents.AtAdding();
+    NewEvent.mWrittenMsec = Platform::Utility::CurrentTimeMsec();
+    NewEvent.mStatus = mStatus;
     mWaveMsec = Platform::Utility::CurrentTimeMsec();
-    MoveToCell(((sint32) x) / mWaveR, ((sint32) y) / mWaveR);
 
     mUIName = String::Format("%u-%u",
         mStatus.mRailCode, (uint32) mStatus.mRailOrder);
     mBallAni = 0;
     mBallSizeR = 0;
-}
-
-void RailBall::MoveToCell(sint32 x, sint32 y)
-{
-    // 현재 소속셀에서 제외
-    if(mCellX != -1 && mCellY != -1)
-    {
-        auto& CurCell = gBallLand(String::Format("%d/%d", mCellX, mCellY));
-        for(sint32 i = 0, iend = CurCell.Count(); i < iend; ++i)
-        {
-            auto CurBall = CurCell.At(i);
-            if(this == CurBall)
-            {
-                CurCell.SubtractionSection(i);
-                break;
-            }
-        }
-    }
-    // 다시 소속셀에 등록
-    if(x != -1 && y != -1)
-    {
-        mCellX = x;
-        mCellY = y;
-        auto& CurCell = gBallLand(String::Format("%d/%d", mCellX, mCellY));
-        CurCell.AtAdding() = this;
-    }
 }
 
 void RailBall::RenderBall(ZayPanel& panel)
@@ -104,8 +71,8 @@ void RailBall::RenderBall(ZayPanel& panel)
         mBallAni = 1 - WaveMsec / (2.0 * mSlowVideo);
 
     const sint32 UIGap = 4;
-    mBallSizeR = mBallR
-        + UIGap * ((panel.state(mUIName) & (PS_Focused | PS_Dragging))? 1.0 : mBallAni);
+    mBallSizeR = mBallR + UIGap
+        * ((panel.state(mUIName) & (PS_Focused | PS_Dragging))? 1.0 : mBallAni);
 
     // 볼
     ZAY_XYRR_UI(panel, mStatus.mPosX, mStatus.mPosY, mBallR + UIGap, mBallR + UIGap, mUIName,
@@ -118,8 +85,8 @@ void RailBall::RenderBall(ZayPanel& panel)
             {
                 mStatus.mPosX += x - OldPos.x;
                 mStatus.mPosY += y - OldPos.y;
-                OldPos = Point(x, y);
                 MoveToCell(((sint32) mStatus.mPosX) / mWaveR, ((sint32) mStatus.mPosY) / mWaveR);
+                OldPos = Point(x, y);
             }
         })
     ZAY_XYRR(panel, panel.w() / 2, panel.h() / 2, mBallSizeR, mBallSizeR)
@@ -190,20 +157,8 @@ void RailBall::Tick(uint64 msec)
     // 주위셀에 전파중
     const uint64 WaveMsec = msec - mWaveMsec;
     if(WaveMsec < 5 * mSlowVideo)
-    {
-        const float CurWaveR = mWaveR * WaveMsec / (5.0 * mSlowVideo);
-        for(sint32 y = mCellY - 1, ymax = mCellY + 1; y <= ymax; ++y)
-        for(sint32 x = mCellX - 1, xmax = mCellX + 1; x <= xmax; ++x)
-        {
-            auto& CurCell = gBallLand(String::Format("%d/%d", x, y));
-            for(sint32 i = 0, iend = CurCell.Count(); i < iend; ++i)
-            {
-                auto CurBall = CurCell.At(i);
-                if(this != CurBall)
-                    CurBall->WaveFlush(mLiveEvents, CurWaveR);
-            }
-        }
-    }
+        WaveFlush(mLiveEvents, mWaveR * WaveMsec / (5.0 * mSlowVideo));
+
     // 예약된 신호를 전파시작
     else if(0 < mNextEvents.Count())
     {
@@ -216,12 +171,13 @@ void RailBall::RememberMe()
 {
     if(mNextEvents.Count() == 0)
     {
-        mWrittenMsec = Platform::Utility::CurrentTimeMsec();
-        mNextEvents.AtAdding() = *((BallEvent*) this);
+        auto& NewEvent = mNextEvents.AtAdding();
+        NewEvent.mWrittenMsec = Platform::Utility::CurrentTimeMsec();
+        NewEvent.mStatus = mStatus;
     }
 }
 
-void RailBall::WaveFlush(const BallEvents& events, float waveR)
+void RailBall::OnWaveSniff(const BallEvents& events, float waveR)
 {
     // 최소한 하나의 이벤트는 있어야 함
     if(events.Count() == 0)
@@ -234,7 +190,7 @@ void RailBall::WaveFlush(const BallEvents& events, float waveR)
         return;
 
     // 전파영향권에 닿지 않으면 실패
-    if(waveR < DistanceTo(Sender))
+    if(waveR < Sender.DistanceTo(mStatus.mPosX, mStatus.mPosY))
         return;
 
     // 동일한 전파자의 같거나 오래된 전파는 실패
@@ -250,7 +206,7 @@ void RailBall::WaveFlush(const BallEvents& events, float waveR)
         auto& CurEvent = events[i];
 
         // 릴레이 한계거리보다 멀면 스킵
-        if(mRelayDist < DistanceTo(CurEvent))
+        if(mRelayDist < CurEvent.DistanceTo(mStatus.mPosX, mStatus.mPosY))
             continue;
 
         // 기존에 수집된 이벤트라면 스킵

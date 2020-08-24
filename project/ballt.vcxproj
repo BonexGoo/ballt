@@ -28,18 +28,24 @@
     <ResourceCompile Include="..\common\windows\main.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\source\ballevent.hpp" />
+    <ClInclude Include="..\source\ballstatus.hpp" />
     <ClInclude Include="..\source\boss_config.h" />
     <ClInclude Include="..\source\ballt.hpp" />
     <ClInclude Include="..\source\car.hpp" />
     <ClInclude Include="..\source\railball.hpp" />
     <ClInclude Include="..\source\resource.hpp" />
+    <ClInclude Include="..\source\wavecomp.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\source\ballevent.cpp" />
+    <ClCompile Include="..\source\ballstatus.cpp" />
     <ClCompile Include="..\source\ballt.cpp" />
     <ClCompile Include="..\source\car.cpp" />
     <ClCompile Include="..\source\main.cpp" />
     <ClCompile Include="..\source\railball.cpp" />
     <ClCompile Include="..\source\resource.cpp" />
+    <ClCompile Include="..\source\wavecomp.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C8332454-4D7E-40CB-A0A3-8FA930D8BF7F}</ProjectGuid>

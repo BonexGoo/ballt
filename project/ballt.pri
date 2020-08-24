@@ -14,10 +14,16 @@ HEADERS += ../source/boss_config.h
 SOURCES += ../source/ballt.cpp
 HEADERS += ../source/ballt.hpp
 SOURCES += ../source/main.cpp
+SOURCES += ../source/ballevent.cpp
+HEADERS += ../source/ballevent.hpp
+SOURCES += ../source/ballstatus.cpp
+HEADERS += ../source/ballstatus.hpp
 SOURCES += ../source/car.cpp
 HEADERS += ../source/car.hpp
 SOURCES += ../source/railball.cpp
 HEADERS += ../source/railball.hpp
+SOURCES += ../source/wavecomp.cpp
+HEADERS += ../source/wavecomp.hpp
 SOURCES += ../source/resource.cpp
 HEADERS += ../source/resource.hpp
 

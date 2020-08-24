@@ -39,6 +39,15 @@
     <ClInclude Include="..\source\car.hpp">
       <Filter>source</Filter>
     </ClInclude>
+    <ClInclude Include="..\source\ballevent.hpp">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\ballstatus.hpp">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\wavecomp.hpp">
+      <Filter>source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\source\ballt.cpp">
@@ -54,6 +63,15 @@
       <Filter>source</Filter>
     </ClCompile>
     <ClCompile Include="..\source\car.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\ballevent.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\ballstatus.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\wavecomp.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
